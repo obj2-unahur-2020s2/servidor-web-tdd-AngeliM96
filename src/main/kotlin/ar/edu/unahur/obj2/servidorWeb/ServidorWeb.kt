@@ -10,18 +10,21 @@ enum class CodigoHttp(val codigo: Int) {
 
 class ServidorWeb {
   val modulos = mutableListOf<Modulo>()
+  val analizadores = mutableListOf<Analizador>()
 
-  fun realizarPedido(ip: String, url: String, fechaHora: LocalDateTime): Respuesta {
-    if (!url.startsWith("http:")) {
-      return Respuesta(codigo = CodigoHttp.NOT_IMPLEMENTED, body = "", tiempo = 10)
+  fun realizarPedido( pedido: Pedido): Respuesta {
+    if (!pedido.url.startsWith("http:")) {
+      return Respuesta(CodigoHttp.NOT_IMPLEMENTED, "", 10, pedido, null)
     }
 
-    if (this.algunModuloSoporta(url)) {
-      val moduloSeleccionado = this.modulos.find { it.puedeTrabajarCon(url) }!!
-      return Respuesta(CodigoHttp.OK, moduloSeleccionado.body, moduloSeleccionado.tiempoRespuesta)
+    if (this.algunModuloSoporta(pedido.url)) {
+      val moduloSeleccionado = this.modulos.find { it.puedeTrabajarCon(pedido.url) }!!
+      val respuesta = Respuesta(CodigoHttp.OK, moduloSeleccionado.body, moduloSeleccionado.tiempoRespuesta, pedido, moduloSeleccionado)
+      this.analizadores.forEach{ it.analizarRespuesta(respuesta) }
+      return respuesta
     }
 
-    return Respuesta(codigo = CodigoHttp.NOT_FOUND, body = "", tiempo = 10)
+    return Respuesta(CodigoHttp.NOT_FOUND,"", 10, pedido, null)
   }
 
   fun algunModuloSoporta(url: String) = this.modulos.any { it.puedeTrabajarCon(url) }
@@ -29,6 +32,27 @@ class ServidorWeb {
   fun agregarModulo(modulo: Modulo) {
     this.modulos.add(modulo)
   }
+
+  fun agregarAnalizador(analizador: Analizador) {
+    this.analizadores.add(analizador)
+  }
+
+  fun quitarAnalizador(analizador: Analizador) {
+    if (this.analizadores.contains(analizador)){
+      this.analizadores.remove(analizador)
+    }
+    else {
+      throw Exception("Ese analizador no se encuentra en el servidor.")
+    }
+  }
+
+  fun analizarRespuesta(respuesta: Respuesta) {
+    this.analizadores.forEach { it.analizarRespuesta(respuesta) }
+  }
 }
 
-class Respuesta(val codigo: CodigoHttp, val body: String, val tiempo: Int)
+class Pedido(val ip: String, val url: String, val fechaHora: LocalDateTime){
+  fun obtenerRuta(): String = url.split("/").drop(3).joinToString(separator = "/")
+
+}
+class Respuesta(val codigo: CodigoHttp, val body: String, val tiempo: Int, val pedidoCreador: Pedido, val moduloCreador: Modulo?)
