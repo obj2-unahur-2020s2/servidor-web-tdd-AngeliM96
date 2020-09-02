@@ -14,17 +14,23 @@ class ServidorWeb {
 
   fun realizarPedido( pedido: Pedido): Respuesta {
     if (!pedido.url.startsWith("http:")) {
-      return Respuesta(CodigoHttp.NOT_IMPLEMENTED, "", 10, pedido, null)
+      val respuesta = Respuesta(CodigoHttp.NOT_IMPLEMENTED, "", 10, pedido, null)
+      this.analizadores.forEach{ it.analizarRespuesta(respuesta) }
+
+      return respuesta
     }
 
     if (this.algunModuloSoporta(pedido.url)) {
       val moduloSeleccionado = this.modulos.find { it.puedeTrabajarCon(pedido.url) }!!
       val respuesta = Respuesta(CodigoHttp.OK, moduloSeleccionado.body, moduloSeleccionado.tiempoRespuesta, pedido, moduloSeleccionado)
-      this.analizadores.forEach{ it.analizarRespuesta(respuesta) }
+      if(analizadores.isNotEmpty()){
+        this.analizadores.forEach{ it.analizarRespuesta(respuesta) }
+      }
       return respuesta
     }
-
-    return Respuesta(CodigoHttp.NOT_FOUND,"", 10, pedido, null)
+    val respuesta = Respuesta(CodigoHttp.NOT_FOUND,"", 10, pedido, null)
+    this.analizadores.forEach{ it.analizarRespuesta(respuesta) }
+    return respuesta
   }
 
   fun algunModuloSoporta(url: String) = this.modulos.any { it.puedeTrabajarCon(url) }

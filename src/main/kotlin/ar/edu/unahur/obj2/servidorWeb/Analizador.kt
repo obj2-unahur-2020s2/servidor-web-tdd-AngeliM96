@@ -8,11 +8,13 @@ abstract class Analizador(){
 
 class AnalizadorDemora(val tiempoDemora: Int): Analizador(){
     val respuestasDemoradas = mutableListOf<Respuesta>()
+    val tiemposRespuesta = mutableListOf<Int>()
 
     override fun analizarRespuesta(respuesta: Respuesta){
         if(respuesta.tiempo > tiempoDemora){
-            respuestasDemoradas.add(respuesta)
+            this.respuestasDemoradas.add(respuesta)
         }
+        this.tiemposRespuesta.add(respuesta.tiempo)
     }
     fun cantidadRespuestasDemoradas() = this.respuestasDemoradas.size
 
@@ -45,4 +47,6 @@ class AnalizadorEstadisticas(): Analizador(){
         respuestas.filter {
                 r -> r.pedidoCreador.fechaHora.isAfter(primerTiempo) && r.pedidoCreador.fechaHora.isBefore(segundoTiempo)
         }.count()
+    fun cantidadRespuestasBody(string: String) = respuestas.filter { it.body.contains(string) }.size
+    fun porcentajeExitosos(): Int = respuestas.count { it.codigo == CodigoHttp.OK } * 100 / respuestas.count()
 }

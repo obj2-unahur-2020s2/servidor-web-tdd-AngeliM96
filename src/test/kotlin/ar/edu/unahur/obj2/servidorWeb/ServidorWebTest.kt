@@ -12,10 +12,10 @@ class ServidorWebTest : DescribeSpec({
   describe("Un servidor web") {
     val servidor = ServidorWeb()
     val modulo1 = Modulo(listOf("txt"), "todo bien", 100)
-    val modulo2 = Modulo(listOf("jpg", "gif"), "qué linda foto", 100)
+    val modulo2 = Modulo(listOf("jpg", "gif"), "vos si que la pasás bien", 100)
     servidor.agregarModulo(modulo1)
     servidor.agregarModulo(modulo2)
-    val analizador1 = AnalizadorDemora(20)
+    val analizador1 = AnalizadorDemora(50)
     val analizador2 = AnalizadorIP(listOf("207.46.13.5", "207.46.13.3", "207.46.13.1"))
     val analizador3 = AnalizadorEstadisticas()
     servidor.agregarAnalizador(analizador1)
@@ -42,20 +42,20 @@ class ServidorWebTest : DescribeSpec({
     }
 
     describe("Detección de demora en respuesta"){
-      val respuesta = servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/playa.png", LocalDateTime.now()))
+      val respuesta = servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.now()))
       servidor.analizarRespuesta(respuesta)
 
       it("deberia tener un analizador"){
-        servidor.analizadores.size.shouldBe(1)
+        servidor.analizadores.size.shouldBe(3)
       }
 
       it("debería haber una respuesta demorada"){
-        analizador1.cantidadRespuestasDemoradas().shouldBe(1)
+        analizador1.cantidadRespuestasDemoradas().shouldBe(2)
       }
 
-      it("deberia no tener ningun analizador"){
+      it("deberia tener un analizador menos"){
         servidor.quitarAnalizador(analizador1)
-        servidor.analizadores.shouldBeEmpty()
+        servidor.analizadores.size.shouldBe(2)
       }
     }
 
@@ -73,30 +73,36 @@ class ServidorWebTest : DescribeSpec({
         analizador2.moduloMasConsultado().shouldBe(modulo1)
       }
 
-      it("ruta obtenida"){
-        val pedido  = Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.now())
-        pedido.obtenerRuta().shouldBe("hola.txt")
-      }
-
       it("IPs sospechosas con cierta ruta"){
         servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.now()))
         servidor.realizarPedido(Pedido("207.46.13.3", "http://pepito.com.ar/playa.jpg", LocalDateTime.now()))
         servidor.realizarPedido(Pedido("207.46.13.1", "http://pepito.com.ar/hola.txt", LocalDateTime.now()))
         analizador2.ipsSospechosasConRuta("hola.txt").shouldContainAll("207.46.13.5", "207.46.13.1")
       }
+      
+      it("ruta obtenida"){
+        val pedido  = Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.now())
+        pedido.obtenerRuta().shouldBe("hola.txt")
+      }
+
+    }
+    describe("Estadisticas"){
+      servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.of(2001,9,11,8,46,0)))
+      servidor.realizarPedido(Pedido("207.46.13.3", "http://pepito.com.ar/playa.jpg", LocalDateTime.of(2015,5,14,12,46,35)))
+      servidor.realizarPedido(Pedido("207.46.13.1", "http://pepito.com.ar/hola.txt", LocalDateTime.of(2020,5,25,0,8,46)))
       it("Tiempo de respuesta promedio"){
-        servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.now()))
-        servidor.realizarPedido(Pedido("207.46.13.3", "http://pepito.com.ar/playa.jpg", LocalDateTime.now()))
-        servidor.realizarPedido(Pedido("207.46.13.1", "http://pepito.com.ar/hola.txt", LocalDateTime.now()))
         analizador3.tiempoPromedio().shouldBe(100)
       }
       it("Cantidad de pedidos entre dos momentos"){
-        servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.of(2001,9,11,8,46,0)))
-        servidor.realizarPedido(Pedido("207.46.13.3", "http://pepito.com.ar/playa.jpg", LocalDateTime.of(2015,5,14,12,46,35)))
-        servidor.realizarPedido(Pedido("207.46.13.1", "http://pepito.com.ar/hola.txt", LocalDateTime.of(2020,5,25,0,8,46)))
         analizador3.cantidadPedidosEntre(LocalDateTime.of(2001,9,11,8,46,0), LocalDateTime.now()).shouldBe(2)
       }
-
+      it("Cantidad de respuestas cuyo body contiene un determinado string"){
+        analizador3.cantidadRespuestasBody("bien").shouldBe(3)
+      }
+      it("Porcentaje de pedidos con respuesta exitosa"){
+        servidor.realizarPedido(Pedido("207.46.13.5", "http://pepito.com.ar/playa.png", LocalDateTime.now()))
+        analizador3.porcentajeExitosos().shouldBe(75)
+      }
     }
 
   }
