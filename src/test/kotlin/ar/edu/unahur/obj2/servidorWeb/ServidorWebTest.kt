@@ -79,7 +79,7 @@ class ServidorWebTest : DescribeSpec({
         servidor.realizarPedido(Pedido("207.46.13.1", "http://pepito.com.ar/hola.txt", LocalDateTime.now()))
         analizador2.ipsSospechosasConRuta("hola.txt").shouldContainAll("207.46.13.5", "207.46.13.1")
       }
-      
+
       it("ruta obtenida"){
         val pedido  = Pedido("207.46.13.5", "http://pepito.com.ar/hola.txt", LocalDateTime.now())
         pedido.obtenerRuta().shouldBe("hola.txt")
